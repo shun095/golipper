@@ -97,7 +97,7 @@ func logOutputPipe(out io.ReadCloser) error {
 		if err != nil {
 			if err != io.EOF {
 				log.Fatal("Output read error: %w", err)
-				return xerrors.Errorf("Output read error: %w", err)
+				// return xerrors.Errorf("Output read error: %w", err)
 			}
 			break
 		}
