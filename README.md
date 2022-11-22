@@ -18,7 +18,7 @@ Host server_name
 
 ```sh
 # Local
-go run src/main.go
+go run ./cmd/golipper
 ```
 
 ## Send to clipboard remotely
