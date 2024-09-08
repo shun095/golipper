@@ -45,22 +45,28 @@ func mainModule() int {
 	}
 
 	for {
-		conn, err := ln.Accept()
+		err = loop(ln)
 		if err != nil {
 			log.Fatal(err.Error())
 			return errorExitCode
 		}
-		go handleConnection(conn)
 	}
+
 }
 
-func handleConnection(conn net.Conn) error {
-	defer conn.Close()
+func loop(ln net.Listener) error {
 
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, 1024*1024*1024) // GB
 
-	message := ""
 	for {
+		message := ""
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Fatal(err.Error())
+			return err
+		}
+		defer conn.Close()
+
 		n, err := conn.Read(buffer)
 		if err != nil {
 			if err != io.EOF {
@@ -69,25 +75,21 @@ func handleConnection(conn net.Conn) error {
 			break
 		}
 		message = message + string(buffer[:n])
-		log.Print("Recieved message: " + string(buffer[:n]))
+		log.Print("Recieved message:\n" + message)
+
+		err = putStringToClipboard(message)
+		if err != nil {
+			return err
+		}
+		err = conn.Close()
+		if err != nil {
+			return err
+		}
 	}
-
-	err := putStringToClipboard(message)
-	if err != nil {
-		return err
-	}
-
-	writeBytes := []byte("helloasdfasdf")
-	_, err = conn.Write(writeBytes)
-
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func logOutputPipe(out io.ReadCloser) error {
+func logOutputPipe(out io.ReadCloser, typeName string) error {
 	defer out.Close()
 	buffer := make([]byte, 1024)
 	message := ""
@@ -104,7 +106,7 @@ func logOutputPipe(out io.ReadCloser) error {
 		message = message + string(buffer[:n])
 	}
 
-	log.Print("Clip Command Log: " + message)
+	log.Print(typeName + ": " + message)
 	return nil
 }
 
@@ -112,7 +114,7 @@ func putStringToClipboard(content string) error {
 	var clipCommand string
 	var cmd *exec.Cmd
 
-	log.Println("Putting string to clipboard: \n===== Content =====\n" + content)
+	log.Println("Putting string to clipboard:\n" + content)
 
 	if runtime.GOOS == "windows" {
 		clipCommand = "clip.exe"
@@ -151,8 +153,8 @@ func putStringToClipboard(content string) error {
 		return xerrors.Errorf("Stdout pipe error: %w", err)
 	}
 
-	go logOutputPipe(stderr)
-	go logOutputPipe(stdout)
+	go logOutputPipe(stdout, "stdout")
+	go logOutputPipe(stderr, "stderr")
 
 	cmd.Run()
 	if err != nil {
