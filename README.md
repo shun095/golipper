@@ -14,6 +14,12 @@ Host server_name
     RemoteForward 8377 localhost:8377
 ```
 
+or run:
+
+```
+ssh XXX.XXX.XXX.XXX -R 8377:localhost:8377
+```
+
 ## Launch golipper at local
 
 ```sh
